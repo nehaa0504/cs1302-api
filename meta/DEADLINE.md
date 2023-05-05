@@ -14,18 +14,29 @@ Markdown is transformed into nice looking HTML.
 
 > **Also, include the GitHub `https` URL to your repository.**
 
-TODO WRITE / REPLACE
+The users will enter a country name. I change this into a country code.
+Using this code, I request information from http://api.worldbank.org/v2/country/br?format=json (example using brazil)
+World Bank:  https://datahelpdesk.worldbank.org/knowledgebase/articles/898590-country-api-queries
+This gives me the country name, capital city name, and the longitude and latitude values for the capital city.
+I use the latitude and longitude values to search for the sunrise and sunset times from
+https://sunrise-sunset.org/api . An example query would be: https://api.sunrise-sunset.org/json?lat=36.7201600&lng=-4.4203400
+I display the country name, capital city name, and the sunrise and sunset times for the capital city.
+My GitHub URL: https://github.com/nehaa0504/cs1302-api
 
 ## Part 2: New
 
 > What is something new and/or exciting that you learned from working
 > on this project?
 
-TODO WRITE / REPLACE
+Learning about accessing APIs was incredibly educational. I participated
+in UGAHacks earlier this year and was completely clueless as to what API even meant.
+I feel like my experience with this project will really help me in my future hackathons.
 
 ## Part 3: Retrospect
 
 > If you could start the project over from scratch, what do
 > you think might do differently and why?
 
-TODO WRITE / REPLACE
+I might have spent more time learning how to make the display look prettier. Or, I may
+have incorporated more information from each website. I was also interested in creating multiple
+scene graphs with buttons linking to a different scene graph to display completely different things.
