@@ -1,7 +1,8 @@
 package cs1302.api;
 
+/**
+ * Recieve the results from the website.
+ */
 public class SunResponse {
-    // results or String sunrise; String sunset;
-    // most likely results n need create new class
-    // FINISH PACKAGE NAME
+    SunResult results;
 } // SunResponse

@@ -27,9 +27,16 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
+import java.io.IOException;
+import com.google.gson.stream.JsonReader;
+import java.io.StringReader;
 
 /**
- * REPLACE WITH NON-SHOUTING DESCRIPTION OF YOUR APP.
+ * This application takes in a request for a country name and uses apiworldbank.org.
+ * The website gives back the longitude and latitude values which are used to find the
+ * sunrise and sunset time of the capital city using api.sunrise-sunset.org.
+ * Thank you for teaching me this semester I really enjoyed your class Dr. Barnes!
+ * And thank you to the TAs!!
  */
 public class ApiApp extends Application {
     Stage stage;
@@ -51,6 +58,8 @@ public class ApiApp extends Application {
     Button searchB;
     TextFlow searchText;
     TextField searchField;
+    HBox insH;
+    TextFlow instructions;
     HBox countryH;
     TextFlow countryText;
     TextFlow capitalText;
@@ -72,15 +81,19 @@ public class ApiApp extends Application {
         searchB = new Button("Search");
         searchText = new TextFlow(new Text("Enter a country name:   "));
         searchField = new TextField();
+        insH = new HBox();
+        Text iText = new Text("Find out when the sun will rise and set in the capital ");
+        Text tTwo = new Text("city of the given country!  (Not all countries included)");
+        instructions = new TextFlow(iText, tTwo);
         countryH = new HBox();
-        countryText = new TextFlow(new Text("Country:        "));
-        capitalText = new TextFlow(new Text("Capital:        "));
+        countryText = new TextFlow(new Text("Country:\t\t\t\t\t\t\t\t\t\t\t\t"));
+        capitalText = new TextFlow(new Text("Capital: "));
         imageH = new HBox();
         sunRIV = new ImageView();
         sunSIV = new ImageView();
         sunTimeH = new HBox();
-        sunriseText = new TextFlow(new Text("Sunrise Time:      "));
-        sunsetText = new TextFlow(new Text("Sunset Time:      "));
+        sunriseText = new TextFlow(new Text("Sunrise Time:\t\t\t\t\t\t\t\t\t\t\t"));
+        sunsetText = new TextFlow(new Text("Sunset Time: "));
     } // ApiApp
 
 
@@ -88,11 +101,17 @@ public class ApiApp extends Application {
     /** {@inheritDoc} */
     @Override
     public void init() {
-        root.getChildren().addAll(queryH, countryH, imageH, sunTimeH);
+        root.getChildren().addAll(queryH, insH, countryH, imageH, sunTimeH);
         queryH.getChildren().addAll(searchText, searchField, searchB);
+        HBox.setHgrow(this.searchField, Priority.ALWAYS);
+        insH.getChildren().add(instructions);
         countryH.getChildren().addAll(countryText, capitalText);
         imageH.getChildren().addAll(sunRIV, sunSIV);
         sunTimeH.getChildren().addAll(sunriseText, sunsetText);
+        sunRIV.setPreserveRatio(true);
+        sunRIV.setFitWidth(400);
+        sunSIV.setPreserveRatio(true);
+        sunSIV.setFitWidth(400);
         String oneR = "https://creazilla-store.fra1.digitaloceanspaces.com/";
         String twoR = "cliparts/1723310/sunrise-clipart-md.png";
         Image sRise = new Image(oneR + twoR);
@@ -101,6 +120,9 @@ public class ApiApp extends Application {
         Image sSet = new Image(oneS + twoS);
         sunRIV.setImage(sRise);
         sunSIV.setImage(sSet);
+
+        Runnable countryRun = () -> getCountry(getCountryCode(this.searchField.getText()));
+        this.searchB.setOnAction(event -> runInThread(countryRun));
     } // init
 
 
@@ -134,33 +156,109 @@ public class ApiApp extends Application {
 
 
     /**
-     * Sunrise sunset time.
-     * @param cc the country code given by the user
+     * Retrieve country information.
+     * @param cc the country code given by the getCountryCode
      */
-    /**
-    public void getSunTime(String cc) {
-        // CHANGE VOID RESPONSE TYPE
+    public void getCountry(String cc) {
         // construct url
         HttpRequest req = HttpRequest.newBuilder()
-            .uri(URI.create("http://api.worldbank.org/v2/country/" + cc + "?format=json"))
+            .uri(URI.create("https://api.worldbank.org/v2/country/" + cc + "?format=json"))
             .build();
-        // ClassName worldResponse = null;
+        Countries csResp = null;
+        Country[] countryResp = null;
         try {
             HttpResponse<String> response = HTTP_CLIENT.send(req, BodyHandlers.ofString());
             String responseBody = response.body();
-            // worldResponse = GSON.<ClassName>fromJson(responseBody, ClassName.class);
-            // return worldResponse;
-        } catch (IOException | InterruptedException e){
+            JsonReader read = new JsonReader(new StringReader(responseBody));
+            String countryName = "";
+            String capitalC = "";
+            String longitudeC = "";
+            String latitudeC = "";
+            read.beginArray();
+            read.skipValue();
+            read.beginArray();
+            while (read.hasNext()) {
+                read.beginObject();
+                while (read.hasNext()) {
+                    String name = read.nextName();
+                    if (name.equals("id")) {
+                        read.skipValue();
+                    } else if (name.equals("iso2Code")) {
+                        read.skipValue();
+                    } else if (name.equals("name")) {
+                        countryName = read.nextString();
+                    } else if (name.equals("region")) {
+                        read.skipValue();
+                    } else if (name.equals("adminregion")) {
+                        read.skipValue();
+                    } else if (name.equals("incomeLevel")) {
+                        read.skipValue();
+                    } else if (name.equals("capitalCity")) {
+                        capitalC = read.nextString();
+                    } else if (name.equals("longitude")) {
+                        longitudeC = read.nextString();
+                    } else if (name.equals("latitude")) {
+                        latitudeC = read.nextString();
+                    } else {
+                        read.skipValue();
+                    }
+                }
+                read.endObject();
+            }
+            read.endArray();
+            read.close();
+            // update values displayed
             Platform.runLater(() -> this.countryText.getChildren().clear());
-            Text not = new Text("Country not found :(   ");
-            Platform.runLater(() -> this.countryText.getChildren().add(not));
-            Text again = new Text("Try a different query!");
+            Text theName = new Text("Country:  " + countryName + "\t\t\t\t\t\t\t\t\t");
+            Platform.runLater(() -> this.countryText.getChildren().add(theName));
+            Text cap = new Text("Capital:  " + capitalC);
             Platform.runLater(() -> this.capitalText.getChildren().clear());
-            Platform.runLater(() -> this.capitalText.getChildren().add(again));
+            Platform.runLater(() -> this.capitalText.getChildren().add(cap));
+            // THIS IS FOR SUN TIMES
+            SunResult sRes = getSunTime(latitudeC, longitudeC);
+            Platform.runLater(() -> this.sunriseText.getChildren().clear());
+            Text riseTime = new Text("Sunrise Time:  " + sRes.sunrise + "\t\t\t\t\t\t\t\t");
+            Platform.runLater(() -> this.sunriseText.getChildren().add(riseTime));
+            Text setTime = new Text("Sunset Time:  " + sRes.sunset);
+            Platform.runLater(() -> this.sunsetText.getChildren().clear());
+            Platform.runLater(() -> this.sunsetText.getChildren().add(setTime));
+        } catch (IOException | InterruptedException | IllegalStateException e) {
+            errorUpdate();
+        } catch (IllegalArgumentException ie) {
+            errorUpdate();
+        } // try catch
+
+    } // getCountry
+
+
+    /**
+     * Retrieve sunset and sunrise information.
+     * @param lat the latitude value
+     * @param lon the longitude value
+     * @return the results from the website about the sunrise and sunset times
+     */
+    public SunResult getSunTime(String lat, String lon) {
+        // construct url
+        //THROW EXCEPTIONS??
+        String urlLat = URLEncoder.encode(lat, StandardCharsets.UTF_8);
+        String urlLong = URLEncoder.encode(lon, StandardCharsets.UTF_8);
+        String queryS = String.format("?lat=%s&lng=%s", urlLat, urlLong);
+        HttpRequest reqS = HttpRequest.newBuilder()
+            .uri(URI.create("https://api.sunrise-sunset.org/json" + queryS))
+            .build();
+        SunResponse sResponse = null;
+        SunResult sResult = null;
+        try {
+            HttpResponse<String> responseS = HTTP_CLIENT.send(reqS, BodyHandlers.ofString());
+            String responseBody = responseS.body();
+            sResponse = GSON.<SunResponse>fromJson(responseBody, SunResponse.class);
+            sResult = sResponse.results;
+        } catch (IOException | InterruptedException e) {
+            errorUpdate();
         }
-        // return worldResponse;
+        return sResult;
     } // getSunTime
-    */
+
 
     /**
      * Create a Thread.
@@ -175,13 +273,13 @@ public class ApiApp extends Application {
     /**
      * Return the country code for the specified country.
      * @param country the country name the user enters
+     * @return the code for the specified country
      */
     public String getCountryCode(String country) {
         String coco = "";
-        if (country.length() <= 3) {
-            return coco;
-        } // non existant country name
-        if (country.equalsIgnoreCase("united arab emirates")) {
+        if (country.length() < 3) {
+            coco = "xxx";
+        } else if (country.equalsIgnoreCase("united arab emirates")) {
             coco = "are";
         } else if (country.equalsIgnoreCase("austria")) {
             coco = "aut";
@@ -224,9 +322,23 @@ public class ApiApp extends Application {
         } else {
             coco = country.substring(0, 3);
         } // if else statement
-
         return coco;
     } // getCountryCode
 
+    /**
+     * Update what is displayed if no results are found.
+     */
+    public void errorUpdate() {
+        Platform.runLater(() -> this.countryText.getChildren().clear());
+        Text not = new Text("Country not found :( Try a different query! ");
+        Platform.runLater(() -> this.countryText.getChildren().add(not));
+        Platform.runLater(() -> this.capitalText.getChildren().clear());
+        Platform.runLater(() -> this.sunriseText.getChildren().clear());
+        Text emptyRise = new Text("Sunrise Time:\t\t\t\t\t\t\t\t\t\t\t");
+        Platform.runLater(() -> this.sunriseText.getChildren().add(emptyRise));
+        Text emptySet = new Text("Sunset Time:");
+        Platform.runLater(() -> this.sunsetText.getChildren().clear());
+        Platform.runLater(() -> this.sunsetText.getChildren().add(emptySet));
+    } // errorUpdate
 
 } // ApiApp
